@@ -1,9 +1,12 @@
 import * as anchor from "@project-serum/anchor";
-import { Program } from "@project-serum/anchor";
-import { Sigma } from "../target/types/sigma";
-import { MerkleTree } from "merkletreejs";
+import {Program} from "@project-serum/anchor";
+import {Sigma} from "../target/types/sigma";
+import {MerkleTree} from "merkletreejs";
 import keccak256 from "keccak256";
-import assert from "assert";
+import chai, { assert, expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
+
+chai.use(chaiAsPromised);
 
 describe("sigma", () => {
   const provider = anchor.Provider.env();
@@ -28,7 +31,7 @@ describe("sigma", () => {
       provider.wallet.publicKey.toBuffer(),
     ],
     keccak256,
-    { sortPairs: true, hashLeaves: true }
+    {sortPairs: true, hashLeaves: true}
   );
   const root = tree.getRoot();
 
@@ -38,19 +41,15 @@ describe("sigma", () => {
       program.programId
     );
 
-    try {
-      await program.rpc.initialize(whitelistBump, [...root], {
-        accounts: {
-          whitelist: whitelist,
-          counter: counter.publicKey,
-          payer: provider.wallet.publicKey,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        },
-        signers: [counter],
-      });
-    } catch (e) {
-      assert.fail("Initialization failed.");
-    }
+    await program.rpc.initialize(whitelistBump, [...root], {
+      accounts: {
+        whitelist: whitelist,
+        counter: counter.publicKey,
+        payer: provider.wallet.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      },
+      signers: [counter],
+    });
   });
 
   it("valid increment", async () => {
@@ -79,18 +78,13 @@ describe("sigma", () => {
 
     const validProof: Buffer[] = proof.map((p) => p.data);
 
-    try {
-      await program.rpc.increment(validProof, {
-        accounts: {
-          whitelist: whitelist,
-          counter: counter.publicKey,
-          payer: provider.wallet.publicKey,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        },
-      });
-      assert.fail("attacker shouldn't be able to increment!");
-    } catch (e) {
-      assert.equal(e.code, 6000);
-    }
+    await expect(program.rpc.increment(validProof, {
+      accounts: {
+        whitelist: whitelist,
+        counter: counter.publicKey,
+        payer: provider.wallet.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      },
+    })).to.be.rejectedWith('0x1770');
   });
 });

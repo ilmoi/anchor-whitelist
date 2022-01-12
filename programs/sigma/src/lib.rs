@@ -58,15 +58,7 @@ pub struct Initialize<'info> {
     pub whitelist: Account<'info, Whitelist>,
 
     /// Counter account
-    #[account(
-        init,
-        seeds = [
-            b"counter".as_ref(),
-            payer.key().as_ref()
-        ],
-        bump = whitelist_bump,
-        payer = payer
-    )]
+    #[account(init, payer = payer)]
     pub counter: Account<'info, Counter>,
 
     #[account(mut)]
