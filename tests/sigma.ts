@@ -3,7 +3,7 @@ import {Program} from "@project-serum/anchor";
 import {Sigma} from "../target/types/sigma";
 import {MerkleTree} from "merkletreejs";
 import keccak256 from "keccak256";
-import chai, { assert, expect } from 'chai';
+import chai, {assert, expect} from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 
 chai.use(chaiAsPromised);
@@ -24,12 +24,24 @@ describe("sigma", () => {
 
   let attacker = anchor.web3.Keypair.generate();
 
+  const leaves = [
+    user1.publicKey.toBuffer(),
+    user2.publicKey.toBuffer(),
+    provider.wallet.publicKey.toBuffer(),
+  ];
+
+  for (let i = 0; i < 100000; i++) {
+    let u = anchor.web3.Keypair.generate();
+    leaves.push(u.publicKey.toBuffer())
+    if (i % 1000 === 0) {
+      console.log(i);
+    }
+  }
+
+  console.log(`there are ${leaves.length} leaves`)
+
   const tree = new MerkleTree(
-    [
-      user1.publicKey.toBuffer(),
-      user2.publicKey.toBuffer(),
-      provider.wallet.publicKey.toBuffer(),
-    ],
+    leaves,
     keccak256,
     {sortPairs: true, hashLeaves: true}
   );
@@ -57,6 +69,7 @@ describe("sigma", () => {
     const proof = tree.getProof(leaf);
 
     const validProof: Buffer[] = proof.map((p) => p.data);
+    console.log(`proof is ${validProof.length} long`)
 
     await program.rpc.increment(validProof, {
       accounts: {
